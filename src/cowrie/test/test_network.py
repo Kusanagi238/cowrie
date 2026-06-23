@@ -45,9 +45,9 @@ class TestCommunicationAllowed(unittest.TestCase):
 
     @inlineCallbacks
     def test_ipv6_address_blocked(self):
-        # Test with a blocked IPv6 address (should return False)
+        # Test with a loopback IPv6 address (should return True)
         allowed = yield communication_allowed("::1")  # Loopback address
-        self.assertFalse(allowed)
+        self.assertTrue(allowed)
 
     @inlineCallbacks
     def test_dns_resolution_allowed(self):

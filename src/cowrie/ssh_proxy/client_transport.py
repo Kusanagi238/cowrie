@@ -6,7 +6,7 @@ from __future__ import annotations
 from typing import Any
 
 from twisted.conch.ssh import factory, transport
-from twisted.internet import defer, protocol
+from twisted.internet import defer
 from twisted.protocols.policies import TimeoutMixin
 from twisted.python import log
 
@@ -40,6 +40,7 @@ class BackendSSHTransport(transport.SSHClientTransport, TimeoutMixin):
     This class represents the transport layer from Cowrie's proxy to the backend SSH server. It is responsible for
     authentication to that server, and sending messages it gets to the handler.
     """
+
     def __init__(self, factory: BackendSSHFactory):
         self.delayedPackets: list[tuple[int, bytes]] = []
         self.factory: BackendSSHFactory = factory

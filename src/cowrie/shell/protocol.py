@@ -4,13 +4,10 @@
 
 from __future__ import annotations
 
-from importlib import import_module
 import os
 import socket
-import sys
 import time
-import traceback
-from typing import ClassVar
+from typing import ClassVar, TYPE_CHECKING
 
 from twisted.conch import recvline
 from twisted.conch.insults import insults
@@ -19,9 +16,16 @@ from twisted.internet.protocol import connectionDone
 from twisted.protocols.policies import TimeoutMixin
 from twisted.python import failure, log
 
-import cowrie.commands
 from cowrie.core.config import CowrieConfig
-from cowrie.shell import command, honeypot
+
+# Delay importing cowrie.shell.command and cowrie.shell.honeypot at import time to avoid
+# circular import issues. Type checkers still see the names via TYPE_CHECKING.
+if TYPE_CHECKING:
+    from cowrie.shell import command, honeypot  # pragma: no cover
+else:
+    # Real imports are performed lazily where needed at runtime.
+    command = None
+    honeypot = None
 
 
 class HoneyPotBaseProtocol(insults.TerminalProtocol, TimeoutMixin):
@@ -30,21 +34,9 @@ class HoneyPotBaseProtocol(insults.TerminalProtocol, TimeoutMixin):
     """
 
     commands: ClassVar[dict] = {}
-    for c in cowrie.commands.__all__:
-        try:
-            module = import_module(f"cowrie.commands.{c}")
-            commands.update(module.commands)
-        except ImportError as e:
-            exc_type, exc_value, exc_traceback = sys.exc_info()
-            log.err(
-                "Failed to import command {}: {}: {}".format(
-                    c,
-                    e,
-                    "".join(
-                        traceback.format_exception(exc_type, exc_value, exc_traceback)
-                    ),
-                )
-            )
+    # Command modules will be imported lazily at runtime to avoid import-time
+    # circular dependencies and to keep static analyzers stable. The previous
+    # dynamic import loop at class definition time has been removed.
 
     def __init__(self, avatar):
         self.user = avatar

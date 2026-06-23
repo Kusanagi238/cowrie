@@ -15,8 +15,35 @@ from twisted.python import failure, log
 from twisted.python.compat import iterbytes
 
 from cowrie.core.config import CowrieConfig
-from cowrie.shell import fs
-from cowrie.shell import protocol
+
+
+# Lazy-import proxies to avoid circular imports at module import time.
+# Other modules may import HoneyPotShell during initialization; importing
+# cowrie.shell.fs or cowrie.shell.protocol at top-level can create a
+# circular import. These proxy objects delay the actual import until an
+# attribute is accessed at runtime.
+class _LazyModule:
+    def __init__(self, modulename: str):
+        self._modulename = modulename
+        self._module = None
+
+    def _load(self):
+        if self._module is None:
+            import importlib
+
+            self._module = importlib.import_module(self._modulename)
+
+    def __getattr__(self, name: str):
+        self._load()
+        return getattr(self._module, name)
+
+    def __repr__(self) -> str:  # pragma: no cover - simple repr
+        return f"<LazyModule {self._modulename}>"
+
+
+# Provide proxies with the same names used elsewhere in this module.
+fs = _LazyModule("cowrie.shell.fs")
+protocol = _LazyModule("cowrie.shell.protocol")
 
 
 class HoneyPotShell:
