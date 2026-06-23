@@ -13,27 +13,24 @@ involve requesting and freeing VMs. All operations on shared data
 in the producer-consumer are guarded by a lock, since there may be
 concurrent requests. The lock protects the _guests_ list, which
 contains references for each VM backend (in our case libvirt/QEMU
-instances).  """
+instances)."""
 
 # Copyright (c) 2019 Guilherme Borges <guilhermerosasborges@gmail.com>
 # See the COPYRIGHT file for more information
 
 from __future__ import annotations
 
-from dataclasses import dataclass
 import os
 import time
+from dataclasses import dataclass
 from threading import Lock
 
-from twisted.internet import reactor
-from twisted.internet import threads
-from twisted.python import log
-
 from cowrie.core.config import CowrieConfig
+from twisted.internet import reactor, threads
+from twisted.python import log
 
 import backend_pool.libvirt.backend_service
 import backend_pool.util
-
 
 POOL_STATE_CREATED = "created"
 POOL_STATE_AVAILABLE = "available"
@@ -158,7 +155,15 @@ class PoolService:
     def stop_pool(self):
         # lazy import to avoid exception if not using the backend_pool
         # and libvirt not installed (#1185)
-        import libvirt
+        try:
+            import libvirt  # type: ignore[import]
+
+            LibvirtError = libvirt.libvirtError
+        except Exception:
+            libvirt = None
+
+            class LibvirtError(Exception):
+                pass
 
         log.msg(eventid="cowrie.backend_pool.service", format="Trying pool clean stop")
 
@@ -182,7 +187,7 @@ class PoolService:
 
         try:
             self.qemu.stop_backend()
-        except libvirt.libvirtError:
+        except LibvirtError:
             print("Not connected to QEMU")  # noqa: T201
 
     def shutdown_pool(self):

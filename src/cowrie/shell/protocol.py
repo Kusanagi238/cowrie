@@ -9,7 +9,7 @@ import socket
 import sys
 import time
 import traceback
-from typing import ClassVar
+from typing import Any, ClassVar
 
 from twisted.conch import recvline
 from twisted.conch.insults import insults
@@ -27,7 +27,7 @@ class HoneyPotBaseProtocol(insults.TerminalProtocol, TimeoutMixin):
     Base protocol for interactive and non-interactive use
     """
 
-    commands: ClassVar = {}
+    commands: ClassVar[dict[str, Any]] = {}
     for c in cowrie.commands.__all__:
         try:
             module = __import__(
